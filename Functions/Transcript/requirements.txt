@@ -1,0 +1,8 @@
+wave
+datetime
+numpy
+scikit-learn==0.24.2
+torch
+pyannote.audio==1.1
+whisper
+
