@@ -232,7 +232,7 @@ def main():
                 if language == 'English' and model_size != 'large':
                     model_name += '.en'
 
-                path = f'C:/Users/juanj/Documents/Berries/Busy Berry/Busy-Berry-Backend/Functions/Transcript/{diff}/audio.wav'
+                path = f'C:/Users/Usuario/OneDrive/Escritorio/Busy Berry/Busy-Berry-Backend/Functions/Transcript/{diff}/audio.wav'
                 path = preprocess_audio(path)
 
                 embedding_model = load_embedding_model()
