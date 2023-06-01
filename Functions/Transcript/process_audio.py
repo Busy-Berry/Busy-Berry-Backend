@@ -14,6 +14,8 @@ import json
 import os
 import re
 from elasticsearch import Elasticsearch
+import sys
+import traceback
 
 #config
 bucket_name = 'busy-berry-meet-records'
@@ -23,7 +25,7 @@ secret_key = 'ZiXmQfq0UjcTcttGTYON2Gjeb5Pi7JVhtflzX+BP'
 
 
 def load_embedding_model():
-    return PretrainedSpeakerEmbedding("speechbrain/spkrec-ecapa-voxceleb")
+    return PretrainedSpeakerEmbedding("speechbrain/spkrec-ecapa-voxceleb",device=torch.device("cuda:0"))
 
 def load_audio(path):
     audio = pyannote.audio.Audio()
@@ -38,7 +40,14 @@ def segment_embedding(embedding_model, audio, path, segment, duration):
     end = min(segment["end"], duration)
     clip = pyannote.core.Segment(start, end)
     waveform, sample_rate = audio.crop(path, clip)
-    return embedding_model(waveform[None])
+    try:
+        return embedding_model(waveform[None])
+    # many more statements like this
+    except AssertionError:
+        _, _, tb = sys.exc_info()
+        traceback.print_tb(tb) # Fixed format
+
+    
     
 def preprocess_audio(path):
     if path[-3:] != 'wav':
@@ -142,7 +151,7 @@ def change_format(commitments):
     # Recorrer cada línea y extraer el responsable y el compromiso
     for linea in lineas:
         # Dividir la línea en responsable y compromiso utilizando el separador ' - '
-        responsable, compromiso = linea.split(' - ')
+        responsable, compromiso = linea.split(':')
 
         # Crear un diccionario para almacenar el compromiso convertido
         compromiso_convertido = {
@@ -220,9 +229,9 @@ def main():
         if len(diferences) > 0:
             for diff in diferences:
                 download_s3_folder(bucket_name, diff, f"./{diff}", access_key, secret_key)
-                openai.api_key = "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"
+                openai.api_key = "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"
 
-                num_speakers = 3
+                num_speakers = 2
 
                 language = 'any'
 
@@ -254,7 +263,7 @@ def main():
 
                 objetive = generate_response(transcript, "¿Cual fue el objetivo de la sesion?")
                 description = generate_response(transcript, "Describe la sesion")
-                commitments = change_format(generate_response(transcript, "¿Cuales fueron los compromisos posteriores a la sesion? debes darlo en formato: Responsable - Compromiso"))
+                commitments = change_format(generate_response(transcript, "¿Cuales fueron los compromisos posteriores a la sesion? debes darlo en formato: Responsable : Compromiso"))
                 summary = generate_response(transcript, "Haz un resumen de la sesion")
 
                 data = {
@@ -269,6 +278,6 @@ def main():
                         'commitments': commitments,
                         'transcription': convertir_transcripcion(transcript)
                     }
-                indexar_documento_elasticsearch(data, "meet-records", id_documento="12345")
+                indexar_documento_elasticsearch(data, "meet-records")
 if __name__ == '__main__':
     main()
